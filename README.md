@@ -1,4 +1,4 @@
-# PNG Chunk Inspector
+# PNG Chunk Remover
 
 ## Usage
 
