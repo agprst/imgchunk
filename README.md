@@ -1,6 +1,6 @@
 # PNG Chunk Remover
 
-## Usage
+## Install
 
 ```bash
 $ pnpm install
