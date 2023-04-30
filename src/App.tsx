@@ -115,6 +115,7 @@ const App: Component = () => {
                   {pngChunks()?.length && pngChunks()?.map((chunk) => (
                     <div
                       class={clsx(
+                        "mb-2",
                         AncillaryChunks.has(chunk.type)
                           ? "hover:bg-pink-800 cursor-pointer"
                           : "hover:bg-slate-500 cursor-not-allowed"
@@ -122,7 +123,7 @@ const App: Component = () => {
                       onClick={() => handleRemoveChunk(chunk)}
                     >
                       <p>{`Type : ${chunk.type}`}</p>
-                      <p>{`Length : ${chunk.length}`}</p>
+                      <p>{`Length : ${chunk.length} Bytes`}</p>
                       <p>{`CRC : ${chunk.crc}`}</p>
                     </div>
                   ))}
