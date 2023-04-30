@@ -107,10 +107,10 @@ const App: Component = () => {
         {arrayBuffer() && (
           <div class="flex flex-col">
             <div class="flex">
-              <div class="border border-gray-300 rounded p-4 w-80 h-96 overflow-scroll">
+              <div class="border border-gray-300 rounded p-4 w-80 h-96 overflow-auto scrollbar-hide">
                 <img alt="png" src={imgSrc()} />
               </div>
-              <div class="border border-gray-300 rounded p-4 w-80 h-96 overflow-scroll">
+              <div class="border border-gray-300 rounded p-4 w-80 h-96 overflow-auto">
                 <p id="hex-value" class="text-sm font-mono">
                   {pngChunks()?.length && pngChunks()?.map((chunk) => (
                     <div
