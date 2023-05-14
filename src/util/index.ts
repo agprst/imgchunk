@@ -48,8 +48,9 @@ export const listPngChunks = (uint8Array: Uint8Array): PngChunk[] => {
   return chunks;
 };
 
-export const removePngChunk = (uint8Array: Uint8Array, chunkTypes: string[]): Uint8Array => {
+export const removePngChunk = (uint8Array: Uint8Array, chunkIndexes: number[]): Uint8Array => {
   const chunks: PngChunk[] = [];
+  let chunkIndex = 0;
 
   // Skip the PNG header (8 bytes)
   let offset = 8;
@@ -77,18 +78,20 @@ export const removePngChunk = (uint8Array: Uint8Array, chunkTypes: string[]): Ui
       uint8Array[offset + 8 + chunkLength + 3];
 
     // Check if this is the chunk we want to remove
-    if (chunkTypes.includes(chunkTypeStr)) {
+    if (chunkIndexes.includes(chunkIndex)) {
       // Move to the next chunk
       offset += chunkLength + 12;
+      chunkIndex += 1;
       continue;
     }
-
+    
     // Add the chunk to the list
     chunks.push({ type: chunkTypeStr, length: chunkLength, data: chunkData, crc });
-
+    
     // Move to the next chunk
     offset += chunkLength + 12;
-
+    chunkIndex += 1;
+    
     // Check if we've reached the end of the file
     if (offset >= uint8Array.length) {
       break;

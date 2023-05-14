@@ -1,5 +1,5 @@
-import { Component, createSignal } from "solid-js";
 import clsx from 'clsx';
+import { Component, Index, Show, createSignal } from "solid-js";
 import { PngChunk, arrayBufferToBase64, listPngChunks, removePngChunk } from "./util";
 
 const AncillaryChunks = Object.freeze(new Set([
@@ -20,17 +20,20 @@ const AncillaryChunks = Object.freeze(new Set([
   "zTXt",
 ]));
 
+const Sizes = Object.freeze(["Bytes", "KB", "MB", "GB", "TB"]);
+
 const App: Component = () => {
   let dropzoneRef: HTMLDivElement;
   const [pngChunks, setPngChunks] = createSignal<PngChunk[]>([]);
   const [arrayBuffer, setArrayBuffer] = createSignal<Uint8Array | null>(null);
-  const [chunksToDelete, setChunksToDelete] = createSignal<string[]>([]);
+  const [chunksToDelete, setChunksToDelete] = createSignal<number[]>([]);
+  const [deletedSize, setDeletedSize] = createSignal<number>(0);
   const [imgSrc, setImgSrc] = createSignal<string>('');
 
-  const handleRemoveChunk = (chunkToDelete: PngChunk) => {
+  const handleRemoveChunk = (chunkToDelete: PngChunk, index: number) => {
     if (!AncillaryChunks.has(chunkToDelete.type)) return;
-    setChunksToDelete([...chunksToDelete(), chunkToDelete.type]);
-    setPngChunks(pngChunks().filter((chunk) => chunk.type != chunkToDelete.type));
+    setChunksToDelete([...chunksToDelete(), index]);
+    setDeletedSize(deletedSize() + chunkToDelete.length);
   }
 
   const handleDrop = async (event: DragEvent) => {
@@ -46,7 +49,6 @@ const App: Component = () => {
     event.preventDefault();
     const file = (event.target as HTMLInputElement).files?.[0];
     if (file) readFile(file);
-
   }
 
   const downloadFile = () => {
@@ -73,10 +75,16 @@ const App: Component = () => {
     reader.readAsArrayBuffer(file);
   };
 
+  const convertUnits = (bytes: number) => {
+    if (bytes == 0) return "0 Byte";
+    const i = Math.floor(Math.log(bytes) / Math.log(1000));
+    return `${Math.floor(bytes / Math.pow(1000, i))} ${Sizes[i]}`;
+  }
+
   return (
-    <div class="flex items-center justify-center flex-col h-screen text-white font-bold bg-gray-800">
-      <header class="m-10">
-        <div class="text-5xl font-extrabold.">
+    <div class="flex items-center justify-center flex-col h-fit sm:h-screen text-white font-bold bg-gray-800 overflow-auto">
+      <header class="scroll-m-auto p-10">
+        <div class="text-5xl font-extrabold mt-10 mb-10">
           <span>PNG </span>
           <span class="bg-clip-text text-transparent bg-gradient-to-r from-pink-500 to-violet-500">
             Chunk
@@ -84,11 +92,11 @@ const App: Component = () => {
           <span> Remover</span>
         </div>
       </header>
-      <div>
-        {!arrayBuffer() && (
+      <div class="scroll-m-auto">
+        <Show when={!arrayBuffer()}>
           <div
             ref={dropzoneRef!}
-            class="flex items-center justify-center w-96"
+            class="flex items-center justify-center w-96 mt-40 mb-72 sm:mb-0 sm:mt-0"
             onDrop={handleDrop}
             onDragOver={(e) => {
               e.preventDefault();
@@ -103,43 +111,49 @@ const App: Component = () => {
               <input id="dropzone-file" type="file" class="hidden" accept=".png,image/png" onChange={handleFileSelect} />
             </label>
           </div>
-        )}
-        {arrayBuffer() && (
+        </Show>
+        <Show when={arrayBuffer()}>
           <div class="flex flex-col">
-            <div class="flex">
+            <div class="flex flex-col sm:flex-row">
               <div class="border border-gray-300 rounded p-4 w-80 h-96 overflow-auto scrollbar-hide">
                 <img alt="png" src={imgSrc()} />
               </div>
               <div class="border border-gray-300 rounded p-4 w-80 h-96 overflow-auto">
                 <p id="hex-value" class="text-sm font-mono">
-                  {pngChunks()?.length && pngChunks()?.map((chunk) => (
-                    <div
-                      class={clsx(
-                        "mb-2",
-                        AncillaryChunks.has(chunk.type)
-                          ? "hover:bg-pink-800 cursor-pointer"
-                          : "hover:bg-slate-500 cursor-not-allowed"
-                      )}
-                      onClick={() => handleRemoveChunk(chunk)}
+                  <Index each={pngChunks()}>{(chunk, index) => (
+                    <Show
+                      when={!chunksToDelete().includes(index)}
+                      fallback={<></>}
                     >
-                      <p>{`Type : ${chunk.type}`}</p>
-                      <p>{`Length : ${chunk.length} Bytes`}</p>
-                      <p>{`CRC : ${chunk.crc}`}</p>
-                    </div>
-                  ))}
+                      <div
+                        class={clsx(
+                          "mb-2",
+                          AncillaryChunks.has(chunk().type)
+                            ? "hover:bg-pink-800 cursor-pointer"
+                            : "hover:bg-slate-500 cursor-not-allowed"
+                        )}
+                        onClick={() => handleRemoveChunk(chunk(), index)}
+                      >
+                        <p>{`Type : ${chunk().type}`}</p>
+                        <p>{`Length : ${convertUnits(chunk().length)}`}</p>
+                        <p>{`CRC : ${chunk().crc}`}</p>
+                      </div>
+                    </Show>
+                  )}
+                  </Index>
                 </p>
               </div>
             </div>
             <button
               onClick={downloadFile}
               class={clsx(
-                "m-5 rounded-xl bg-gradient-to-br from-pink-500 to-violet-500 px-5 py-3 text-base font-medium text-white transition duration-200 hover:shadow-lg hover:shadow-[#6025F5]/50",
+                "m-5 mb-10 rounded-xl bg-gradient-to-br from-pink-500 to-violet-500 px-5 py-3 text-base font-medium text-white transition duration-200 hover:shadow-lg hover:shadow-[#6025F5]/50",
               )}
             >
-              Download PNG
+              {`Download PNG (${convertUnits(arrayBuffer()!.length - deletedSize())})`}
             </button>
           </div>
-        )}
+        </Show>
       </div>
     </div>
   );
